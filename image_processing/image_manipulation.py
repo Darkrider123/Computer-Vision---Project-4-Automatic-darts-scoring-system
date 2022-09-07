@@ -18,13 +18,19 @@ def translate_image(image, ox_pixels, oy_pixels):
     return warped
 
 def affine_transformation_warp(image, points_original_place_3, points_desired_place_3):
-    height, width, _ = image.shape
+    assert len(image.shape) == 2 , f"Image must be grayscale. Image shape is not a 2 by 2, it is {image.shape}"
+    height, width = image.shape
     affine_transformation_matrix = cv.getAffineTransform(points_original_place_3, points_desired_place_3)
     warped = cv.warpAffine(image, affine_transformation_matrix, (width, height))
     return warped
 
 def perspective_transformation_warp(image, points_original_place_4, points_desired_place_4):
-    height, width, _ = image.shape
+    assert len(image.shape) == 2 , f"Image must be grayscale. Image shape is not a 2 by 2, it is {image.shape}"
+    points_original_place_4 = np.array(points_original_place_4, np.float32)
+    points_desired_place_4 = np.array(points_desired_place_4, np.float32)
+
+
+    height, width = image.shape
     perspective_transform_matrix = cv.getPerspectiveTransform(points_original_place_4, points_desired_place_4)
     warped = cv.warpPerspective(image, perspective_transform_matrix, (width, height))
     return warped
@@ -35,4 +41,5 @@ def resize_image(image, width, height, interpolation_method=cv.INTER_CUBIC):
         _, width, _ = image.shape * width
     if height < 10:
         height, _, _ = image.shape * height
-    cv.resize(image, (width, height), interpolation=interpolation_method)
+    resized_image = cv.resize(image, (width, height), interpolation=interpolation_method)
+    return resized_image

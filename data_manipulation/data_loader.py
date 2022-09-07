@@ -11,5 +11,8 @@ def load_image_cv(path, filename, grayscale=False):
         image = cv.imread(os.path.join(path, filename), cv.IMREAD_GRAYSCALE)
     else:
         image = cv.imread(os.path.join(path, filename))
+    
+    if image is None:
+        raise ValueError(f"No image with name \"{filename}\"")
 
     return cv.cvtColor(image, cv.COLOR_BGR2RGB)
