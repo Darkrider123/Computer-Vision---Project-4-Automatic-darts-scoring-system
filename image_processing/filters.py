@@ -2,7 +2,8 @@ import cv2 as cv
 import numpy as np
 
 def filter_image(image, kernel):
-    filtered_image = cv.filter2D(image, -1, kernel)
+    image = np.array(image, np.uint8)
+    filtered_image = cv.filter2D(image, cv.CV_8U, kernel)
     return filtered_image
 
 def smoothen_image_gaussian_filter(image, kernel_size, sigmaX=0):
@@ -15,7 +16,7 @@ def smoothen_image_gaussian_filter(image, kernel_size, sigmaX=0):
 def smoothen_image_bilateral_filter(image):
     return cv.bilateralFilter(image, -1, 300, 20)
 
-def sharpen_image(image, ammount):
+def sharpen_image(image, ammount=9):
     kernel = np.array([[-1, -1, -1],
                      [-1, ammount, -1],
                      [-1, -1, -1]])
