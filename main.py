@@ -11,6 +11,7 @@ from image_processing.filters import sharpen_image, smoothen_image_gaussian_filt
 from data_manipulation.data_loader import load_image_cv
 from data_manipulation.data_dumper import save_image
 from image_processing.image_stitching import stitch_image_inside
+from image_processing.background_extraction import extract_foreground_from_image
 
 
 def main():
@@ -91,13 +92,115 @@ def contours(image):
 
 
 
+def filter_image(image):
+    image = remove_noise_from_image_median_filter(image, 3)
+    image = smoothen_image_gaussian_filter(image, 7, 1.5)
+    return image
+
+
+def get_arrows_from_target(image, background):
+    image = filter_image(image)
+    background = filter_image(background)
+    arrows = extract_foreground_from_image(image, background, 50)
+    return arrows
+
+def differentiate_arrows(arrows_image):
+    arrows_image = get_grayscale_image(arrows_image)
+    arrows_image = resize_image(arrows_image, 200, 200) #ar trebui sters DEV
+    data = list()
+    for idy, line in enumerate(arrows_image):
+        for idx, pixel_value in enumerate(line):
+            if pixel_value != 0:
+                data.append([idy, idx])
+    data = np.array(data)
+
+    from meanshift import clusterize
+    result = clusterize(data)
+    unique_entries = set(result)
+    transform_in_color_dict = dict()
+
+    arrows_color_list = list()
+    for elem in unique_entries:
+        current_color = next(COLOR_GENERATOR)
+        transform_in_color_dict[elem] = current_color
+        arrows_color_list.append(current_color)
+    unique_entries = arrows_color_list
+
+    arrows_image = get_color_from_grayscale_image(arrows_image)
+    for idx, pixel in enumerate(data):
+        x_value, y_value = pixel
+        arrows_image[x_value, y_value] = transform_in_color_dict[result[idx]]
+    
+    return arrows_image, arrows_color_list
+
+
+def get_arrow_tips(arrows_image, arrows_color_list):
+    arrow_tips = list()
+    for color in arrows_color_list:
+        arrow_points = list()
+        for idy, line in enumerate(arrows_image):
+            for idx, pixel_value in enumerate(line):
+                pixel_value = tuple(pixel_value)
+                if pixel_value == color:
+                    arrow_points.append([idx, idy])
+        arrow_points.sort(key=lambda elem: elem[0])
+        arrow_tips.append(arrow_points[0])
+    return arrow_tips
+
 def process_image_task1(image):
-    pass
+    background = load_image_cv("data", "template_task1.jpg")
+    image = stitch_image_inside(image, background)
+    arrows_image = get_arrows_from_target(image, background)
+    arrows_image = remove_noise_from_image_median_filter(arrows_image, 7)
+    arrows_image, arrows_color_list = differentiate_arrows(arrows_image)
+
+    arrow_tips = get_arrow_tips(arrows_image, arrows_color_list)
+    print(arrow_tips)
+    show_image(arrows_image)
+    
 
 def process_image_task2(image):
     pass
 
 
-if __name__ == '__main__':
-    pass
+def save():
+    image = load_image_cv("data", "01.jpg")
+    background = load_image_cv("data", "template_task1.jpg")
+    image = stitch_image_inside(image, background)
+
+    image = remove_noise_from_image_median_filter(image, 3)
+    image = smoothen_image_gaussian_filter(image, 7, 1.5)
+    background = remove_noise_from_image_median_filter(background, 3)
+    background = smoothen_image_gaussian_filter(background, 7, 1.5)
+
+
+    image_without_bg = extract_foreground_from_image(image, background, 25)
     
+    image_without_bg = get_grayscale_image(image_without_bg)
+    image_without_bg = resize_image(image_without_bg, 200, 200)
+    data = list()
+    for idy, line in enumerate(image_without_bg):
+        for idx, pixel_value in enumerate(line):
+            if pixel_value != 0:
+                data.append([idy, idx])
+    data = np.array(data)
+    print(len(data))
+
+    from meanshift import clusterize
+    result = clusterize(data)
+    unique_entries = set(result)
+    transform_in_color_dict = dict()
+
+    for elem in unique_entries:
+        transform_in_color_dict[elem] = next(COLOR_GENERATOR)
+
+    image_without_bg = get_color_from_grayscale_image(image_without_bg)
+    for idx, pixel in enumerate(data):
+        x_value, y_value = pixel
+        image_without_bg[x_value, y_value] = transform_in_color_dict[result[idx]]
+    
+    show_image(image_without_bg)
+    
+
+if __name__ == '__main__':
+    main()
