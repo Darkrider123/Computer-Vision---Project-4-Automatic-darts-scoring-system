@@ -10,7 +10,7 @@ from image_processing.image_manipulation import perspective_transformation_with_
 from image_processing.filters import sharpen_image, smoothen_image_gaussian_filter, remove_noise_from_image_median_filter
 from data_manipulation.data_loader import load_image_cv
 from data_manipulation.data_dumper import save_image
-from image_stitching import stitch_image_inside
+from image_processing.image_stitching import stitch_image_inside
 
 
 def main():
