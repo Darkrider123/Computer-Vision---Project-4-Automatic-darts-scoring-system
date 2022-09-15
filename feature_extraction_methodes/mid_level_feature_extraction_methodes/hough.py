@@ -3,7 +3,7 @@ import numpy as np
 
 def get_circles_from_image(image, start_radius, end_radius, increment, canny_threshold, precision, accumulator_size_meaning_accuracy = 1, minimum_distance_between_circle_centers=5, method=cv.HOUGH_GRADIENT):
     assert len(image.shape) == 2 , f"Image must be grayscale. Image shape is not a 2 by 2. Given is {image.shape}"
-    assert method == cv.HOUGH_GRADIENT or cv.HOUGH_GRADIENT_ALT, f"Method must be HOUGH_GRADIENT or HOUGH_GRADIENT_ALT. Given is {method}"
+    assert method == (cv.HOUGH_GRADIENT or cv.HOUGH_GRADIENT_ALT), f"Method must be HOUGH_GRADIENT or HOUGH_GRADIENT_ALT. Given is {method}"
 
     circles = list()
     radiuses = [radius for radius in range(start_radius, end_radius, increment)]

@@ -17,23 +17,43 @@ def translate_image(image, ox_pixels, oy_pixels):
     warped = cv.warpAffine(image, affine_transformation_matrix,  (width, height))
     return warped
 
-def affine_transformation_warp(image, points_original_place_3, points_desired_place_3):
-    assert len(image.shape) == 2 , f"Image must be grayscale. Image shape is not a 2 by 2, it is {image.shape}"
-    height, width = image.shape
+def affine_transformation(image, points_original_place_3, points_desired_place_3):
+    height, width, _ = image.shape
     affine_transformation_matrix = cv.getAffineTransform(points_original_place_3, points_desired_place_3)
     warped = cv.warpAffine(image, affine_transformation_matrix, (width, height))
     return warped
 
-def perspective_transformation_warp(image, points_original_place_4, points_desired_place_4):
-    assert len(image.shape) == 2 , f"Image must be grayscale. Image shape is not a 2 by 2, it is {image.shape}"
+def perspective_transformation_with_4_points(image, points_original_place_4, points_desired_place_4):
     points_original_place_4 = np.array(points_original_place_4, np.float32)
     points_desired_place_4 = np.array(points_desired_place_4, np.float32)
 
-
-    height, width = image.shape
     perspective_transform_matrix = cv.getPerspectiveTransform(points_original_place_4, points_desired_place_4)
-    warped = cv.warpPerspective(image, perspective_transform_matrix, (width, height))
+    warped = perspective_transformation_with_homogeneous_matrix(image, perspective_transform_matrix)
     return warped
+
+def perspective_transformation_with_homogeneous_matrix(image, homogeneous_matrix):
+    height, width, _ = image.shape
+    warped = cv.warpPerspective(image, homogeneous_matrix, (width, height))
+    return warped
+
+   
+def get_homogeneous_matrix(all_matches, keypoints_source, keypoints_dest, ratio: float = 0.75, ransac_rep: int = 4.0):
+    if not all_matches:
+        return None
+    
+    matches = [] 
+    for match in all_matches:  
+        if len(match) == 2 and (match[0].distance / match[1].distance) < ratio:
+            matches.append(match[0])
+     
+    points_source = np.float32([keypoints_source[m.queryIdx].pt for m in matches])
+    points_dest = np.float32([keypoints_dest[m.trainIdx].pt for m in matches])
+
+    if len(points_source) > 4:
+        homogeneous_matrix, status = cv.findHomography(points_source, points_dest, cv.RANSAC, ransac_rep)
+        return homogeneous_matrix
+    else:
+        return None
 
 
 def resize_image(image, width, height, interpolation_method=cv.INTER_CUBIC):
@@ -43,3 +63,24 @@ def resize_image(image, width, height, interpolation_method=cv.INTER_CUBIC):
         height, _, _ = image.shape * height
     resized_image = cv.resize(image, (width, height), interpolation=interpolation_method)
     return resized_image
+
+def pad_image(image, procent):
+    assert len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 3, f"Image must be grayscale or RGB. Given array shape is {image.shape}."
+
+    colored = False
+    if len(image.shape) == 3:
+        colored = True
+        height, width, depth = image.shape
+    else:
+        height, width = image.shape
+
+    padding_height = int(height * (procent / 2))
+    padding_width = int(width * (procent / 2))
+
+    if colored is True:
+        padded_image = np.zeros((height + 2 * padding_height, width + 2 *padding_width, depth), dtype=np.uint8)
+    else:
+        padded_image = np.zeros((height + 2 * padding_height, width + 2 *padding_width), dtype=np.uint8)
+
+    padded_image[padding_height : height + padding_height, padding_width: width + padding_width] = image.copy()
+    return padded_image
