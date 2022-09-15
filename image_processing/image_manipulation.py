@@ -32,7 +32,11 @@ def perspective_transformation_with_4_points(image, points_original_place_4, poi
     return warped
 
 def perspective_transformation_with_homogeneous_matrix(image, homogeneous_matrix):
-    height, width, _ = image.shape
+    if len(image.shape) == 3:
+        height, width, _ = image.shape
+    else:
+        height, width = image.shape
+        
     warped = cv.warpPerspective(image, homogeneous_matrix, (width, height))
     return warped
 
