@@ -84,3 +84,18 @@ def pad_image(image, procent):
 
     padded_image[padding_height : height + padding_height, padding_width: width + padding_width] = image.copy()
     return padded_image
+
+def border_box_image(image, thickness_in_pixels):
+    assert len(image.shape) == 2 or len(image.shape) == 3 and image.shape[2] == 3, f"Image must be grayscale or RGB. Given array shape is {image.shape}."
+
+    if len(image.shape) == 3:
+        height, width, _ = image.shape
+    else:
+        height, width = image.shape
+
+    image = image.copy()
+    image[0: thickness_in_pixels] = 0
+    image[height - thickness_in_pixels : height] = 0
+    image[:,0: thickness_in_pixels] = 0
+    image[:, width - thickness_in_pixels : width] = 0
+    return image

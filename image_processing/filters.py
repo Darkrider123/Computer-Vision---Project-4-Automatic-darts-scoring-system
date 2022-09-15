@@ -27,3 +27,7 @@ def remove_noise_from_image_median_filter(image, kernel_size):
     if kernel_size % 2 == 0:
         raise ValueError("kernel size should be odd")
     return cv.medianBlur(image, kernel_size)
+
+def dilate_image(image, kernel=np.ones((3,3), dtype=np.uint8), iterations=1):
+    dilated = cv.dilate(image, kernel=kernel, iterations=iterations)
+    return dilated

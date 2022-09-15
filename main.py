@@ -2,12 +2,12 @@ import numpy as np
 import os
 
 from graphic_display import draw_circle, draw_line, show_image
-from feature_extraction_methodes.mid_level_feature_extraction_methodes import hough, color_segmentation
+from feature_extraction_methodes.mid_level_feature_extraction_methodes import hough, color_segmentation, sift
 from feature_extraction_methodes.low_level_feature_extraction_methodes import edge_extraction
 from image_processing.colors import *
 from image_processing.color_processing import get_grayscale_image, get_color_from_grayscale_image
-from image_processing.image_manipulation import perspective_transformation_with_4_points, resize_image, pad_image
-from image_processing.filters import sharpen_image, smoothen_image_gaussian_filter, remove_noise_from_image_median_filter
+from image_processing.image_manipulation import perspective_transformation_with_4_points, resize_image, pad_image, border_box_image
+from image_processing.filters import sharpen_image, smoothen_image_gaussian_filter, remove_noise_from_image_median_filter, dilate_image
 from data_manipulation.data_loader import load_image_cv
 from data_manipulation.data_dumper import save_image
 from image_processing.image_stitching import stitch_image_inside
@@ -15,7 +15,7 @@ from image_processing.background_extraction import extract_foreground_from_image
 
 
 def main():
-    task1()
+    #task1()
     task2()
 
 
@@ -33,7 +33,7 @@ def task2():
     files = os.listdir(image_folder_path)
     files = [file for file in files if file.split(".")[1]=="jpg"]
 
-    for file in enumerate(files):
+    for file in files:
         image = load_image_cv(image_folder_path, file)
         process_image_task2(image)
 
@@ -101,12 +101,12 @@ def filter_image(image):
 def get_arrows_from_target(image, background):
     image = filter_image(image)
     background = filter_image(background)
-    arrows = extract_foreground_from_image(image, background, 50)
+    arrows = extract_foreground_from_image(image, background, 35)
     return arrows
 
 def differentiate_arrows(arrows_image):
     arrows_image = get_grayscale_image(arrows_image)
-    arrows_image = resize_image(arrows_image, 200, 200) #ar trebui sters DEV
+    #arrows_image = resize_image(arrows_image, 200, 200) #ar trebui sters DEV
     data = list()
     for idy, line in enumerate(arrows_image):
         for idx, pixel_value in enumerate(line):
@@ -114,16 +114,20 @@ def differentiate_arrows(arrows_image):
                 data.append([idy, idx])
     data = np.array(data)
 
-    from meanshift import clusterize
+    from dbscan import clusterize
     result = clusterize(data)
     unique_entries = set(result)
     transform_in_color_dict = dict()
 
     arrows_color_list = list()
     for elem in unique_entries:
-        current_color = next(COLOR_GENERATOR)
+        if elem != -1:
+            current_color = next(COLOR_GENERATOR)
+            arrows_color_list.append(current_color)
+        else:
+            current_color = MAGENTA     # CHANGE TO BLACK AFTER FITTING
         transform_in_color_dict[elem] = current_color
-        arrows_color_list.append(current_color)
+
     unique_entries = arrows_color_list
 
     arrows_image = get_color_from_grayscale_image(arrows_image)
@@ -132,6 +136,21 @@ def differentiate_arrows(arrows_image):
         arrows_image[x_value, y_value] = transform_in_color_dict[result[idx]]
     
     return arrows_image, arrows_color_list
+
+
+def differentiate_arrows__fail(arrows_image):
+    #import cv2 as cv
+    arrows_image = get_grayscale_image(arrows_image)
+    #keypoints, features = sift.get_keypoints_and_features(arrows_image)
+    #im_with_keypoints = cv.drawKeypoints(arrows_image, keypoints, np.array([]), (0,0,255), cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    lines = hough.get_lines_from_image(arrows_image)
+    arrows_image = get_color_from_grayscale_image(arrows_image)
+    for line in lines:
+        draw_line(arrows_image, (line[0], line[1]), (line[2], line[3]))
+    show_image(arrows_image)
+
+    return 1, 2
+
 
 
 def get_arrow_tips(arrows_image, arrows_color_list):
@@ -151,56 +170,27 @@ def process_image_task1(image):
     background = load_image_cv("data", "template_task1.jpg")
     image = stitch_image_inside(image, background)
     arrows_image = get_arrows_from_target(image, background)
+    arrows_image = border_box_image(arrows_image, 50)
     arrows_image = remove_noise_from_image_median_filter(arrows_image, 7)
     arrows_image, arrows_color_list = differentiate_arrows(arrows_image)
-
     arrow_tips = get_arrow_tips(arrows_image, arrows_color_list)
-    print(arrow_tips)
-    show_image(arrows_image)
+    save_image(os.path.join("data", "dbscan_mare_fit"), str(arrow_tips) + ".jpg", arrows_image)
+
     
 
 def process_image_task2(image):
-    pass
-
-
-def save():
-    image = load_image_cv("data", "01.jpg")
-    background = load_image_cv("data", "template_task1.jpg")
+    background = load_image_cv("data", "template_task2.jpg")
     image = stitch_image_inside(image, background)
+    arrows_image = get_arrows_from_target(image, background)
+    arrows_image = border_box_image(arrows_image, 50)
+    arrows_image = remove_noise_from_image_median_filter(arrows_image, 7)
+    arrows_image, arrows_color_list = differentiate_arrows(arrows_image)
+    arrow_tips = get_arrow_tips(arrows_image, arrows_color_list)
+    save_image(os.path.join("data", "dbscan_mare_fit_2"), str(arrow_tips) + ".jpg", arrows_image)
 
-    image = remove_noise_from_image_median_filter(image, 3)
-    image = smoothen_image_gaussian_filter(image, 7, 1.5)
-    background = remove_noise_from_image_median_filter(background, 3)
-    background = smoothen_image_gaussian_filter(background, 7, 1.5)
 
-
-    image_without_bg = extract_foreground_from_image(image, background, 25)
-    
-    image_without_bg = get_grayscale_image(image_without_bg)
-    image_without_bg = resize_image(image_without_bg, 200, 200)
-    data = list()
-    for idy, line in enumerate(image_without_bg):
-        for idx, pixel_value in enumerate(line):
-            if pixel_value != 0:
-                data.append([idy, idx])
-    data = np.array(data)
-    print(len(data))
-
-    from meanshift import clusterize
-    result = clusterize(data)
-    unique_entries = set(result)
-    transform_in_color_dict = dict()
-
-    for elem in unique_entries:
-        transform_in_color_dict[elem] = next(COLOR_GENERATOR)
-
-    image_without_bg = get_color_from_grayscale_image(image_without_bg)
-    for idx, pixel in enumerate(data):
-        x_value, y_value = pixel
-        image_without_bg[x_value, y_value] = transform_in_color_dict[result[idx]]
-    
-    show_image(image_without_bg)
     
 
 if __name__ == '__main__':
+    image = load_image_cv("data", "01.jpg")
     main()
