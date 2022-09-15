@@ -15,7 +15,7 @@ from image_processing.background_extraction import extract_foreground_from_image
 
 
 def main():
-    #task1()
+    task1()
     task2()
 
 
@@ -106,7 +106,6 @@ def get_arrows_from_target(image, background):
 
 def differentiate_arrows(arrows_image):
     arrows_image = get_grayscale_image(arrows_image)
-    #arrows_image = resize_image(arrows_image, 200, 200) #ar trebui sters DEV
     data = list()
     for idy, line in enumerate(arrows_image):
         for idx, pixel_value in enumerate(line):
@@ -125,7 +124,7 @@ def differentiate_arrows(arrows_image):
             current_color = next(COLOR_GENERATOR)
             arrows_color_list.append(current_color)
         else:
-            current_color = MAGENTA     # CHANGE TO BLACK AFTER FITTING
+            current_color = BLACK
         transform_in_color_dict[elem] = current_color
 
     unique_entries = arrows_color_list
@@ -137,19 +136,6 @@ def differentiate_arrows(arrows_image):
     
     return arrows_image, arrows_color_list
 
-
-def differentiate_arrows__fail(arrows_image):
-    #import cv2 as cv
-    arrows_image = get_grayscale_image(arrows_image)
-    #keypoints, features = sift.get_keypoints_and_features(arrows_image)
-    #im_with_keypoints = cv.drawKeypoints(arrows_image, keypoints, np.array([]), (0,0,255), cv.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    lines = hough.get_lines_from_image(arrows_image)
-    arrows_image = get_color_from_grayscale_image(arrows_image)
-    for line in lines:
-        draw_line(arrows_image, (line[0], line[1]), (line[2], line[3]))
-    show_image(arrows_image)
-
-    return 1, 2
 
 
 
@@ -178,6 +164,8 @@ def process_image_task1(image):
 
     
 
+    
+
 def process_image_task2(image):
     background = load_image_cv("data", "template_task2.jpg")
     image = stitch_image_inside(image, background)
@@ -192,5 +180,4 @@ def process_image_task2(image):
     
 
 if __name__ == '__main__':
-    image = load_image_cv("data", "01.jpg")
     main()
